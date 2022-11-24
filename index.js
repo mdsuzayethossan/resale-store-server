@@ -15,11 +15,26 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
+
 async function run() {
   try {
     const usersCollection = client.db("resaleStore").collection("users");
+    app.get("/jwt", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      if (user) {
+        const token = jwt.sign({ email }, process.env.JWT_ACCESS_TOKEN, {
+          expiresIn: "10d",
+        });
+        return res.send({ accessToken: token });
+      } else {
+        res.status(403).send("unauthorized access");
+      }
+    });
     app.post("/users", async (req, res) => {
       const user = req.body;
+      user.created_at = new Date();
       const result = await usersCollection.insertOne(user);
       res.send(result);
     });
