@@ -15,7 +15,18 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
-
+async function run() {
+  try {
+    const usersCollection = client.db("resaleStore").collection("users");
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
+  } finally {
+  }
+}
+run().catch(console.dir);
 app.get("/", (req, res) =>
   res.send("Md Suzayet Hossan, your resale store server is running.")
 );
