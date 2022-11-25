@@ -35,6 +35,9 @@ async function run() {
   try {
     const usersCollection = client.db("resaleStore").collection("users");
     const productsCollection = client.db("resaleStore").collection("products");
+    const categoriesCollection = client
+      .db("resaleStore")
+      .collection("categories");
     const verifySeller = async (req, res, next) => {
       const decodedEmail = req.decoded.email;
       const query = { email: decodedEmail };
@@ -58,6 +61,11 @@ async function run() {
       } else {
         res.status(403).send("unauthorized access");
       }
+    });
+    app.get("/categories", async (req, res) => {
+      const query = {};
+      const categories = await categoriesCollection.find(query).toArray();
+      res.send(categories);
     });
     app.post("/users", async (req, res) => {
       const user = req.body;
