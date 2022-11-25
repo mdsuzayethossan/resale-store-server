@@ -62,10 +62,22 @@ async function run() {
         res.status(403).send("unauthorized access");
       }
     });
+    app.post("/order", async (req, res) => {
+      const order = req.body;
+      order.created_at = new Date();
+      const result = await usersCollection.insertOne(order);
+      res.send(result);
+    });
     app.get("/categories", async (req, res) => {
       const query = {};
       const categories = await categoriesCollection.find(query).toArray();
       res.send(categories);
+    });
+    app.get("/category/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { category: id };
+      const result = await productsCollection.find(query).toArray();
+      res.send(result);
     });
     app.post("/users", async (req, res) => {
       const user = req.body;
@@ -81,6 +93,7 @@ async function run() {
     });
     app.post("/add-product", verifyJWT, verifySeller, async (req, res) => {
       const productInfo = req.body;
+      productInfo.created_at = new Date();
       const result = await productsCollection.insertOne(productInfo);
       res.send(result);
     });
