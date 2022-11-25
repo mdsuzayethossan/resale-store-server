@@ -16,9 +16,36 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
+const verifyJWT = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send("unauthorized access");
+  }
+  const token = authHeader.split(" ")[1];
+  jwt.verify(token, process.env.JWT_ACCESS_TOKEN, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: "forbidden access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+};
+
 async function run() {
   try {
     const usersCollection = client.db("resaleStore").collection("users");
+    const productsCollection = client.db("resaleStore").collection("products");
+    const verifySeller = async (req, res, next) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "seller") {
+        return res
+          .status(403)
+          .send({ message: "forbidden access", success: false });
+      }
+      next();
+    };
     app.get("/jwt", async (req, res) => {
       const email = req.query.email;
       const query = { email: email };
@@ -34,8 +61,19 @@ async function run() {
     });
     app.post("/users", async (req, res) => {
       const user = req.body;
-      user.created_at = new Date();
-      const result = await usersCollection.insertOne(user);
+      const query = { email: user.email };
+      const search = await usersCollection.findOne(query);
+      if (!search) {
+        user.created_at = new Date();
+        const result = await usersCollection.insertOne(user);
+        res.send(result);
+      } else {
+        res.send(search);
+      }
+    });
+    app.post("/add-product", verifyJWT, verifySeller, async (req, res) => {
+      const productInfo = req.body;
+      const result = await productsCollection.insertOne(productInfo);
       res.send(result);
     });
   } finally {
