@@ -98,10 +98,10 @@ async function run() {
         res.send(search);
       }
     });
-    app.post("/user/delete/:id", async (req, res) => {
-      const user = req.params.id;
+    app.delete("/user/delete/:id", async (req, res) => {
+      const id = req.params.id;
       const query = { _id: ObjectId(id) };
-      const result = await usersCollection.deleteOne(user);
+      const result = await usersCollection.deleteOne(query);
       res.send(result);
     });
     app.get("/sellers", async (req, res) => {
