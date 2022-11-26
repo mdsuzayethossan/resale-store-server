@@ -110,6 +110,11 @@ async function run() {
       const result = await productsCollection.find(query).toArray();
       res.send(result);
     });
+    app.get("/advertised-products", async (req, res) => {
+      const query = { advertised: true };
+      const result = await productsCollection.find(query).toArray();
+      res.send(result);
+    });
     app.put("/product/advertise/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
