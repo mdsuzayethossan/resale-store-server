@@ -98,6 +98,22 @@ async function run() {
         res.send(search);
       }
     });
+    app.post("/user/delete/:id", async (req, res) => {
+      const user = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await usersCollection.deleteOne(user);
+      res.send(result);
+    });
+    app.get("/sellers", async (req, res) => {
+      const query = { role: "seller" };
+      const result = await usersCollection.find(query).toArray();
+      res.send(result);
+    });
+    app.get("/buyers", async (req, res) => {
+      const query = { role: "buyer" };
+      const result = await usersCollection.find(query).toArray();
+      res.send(result);
+    });
     app.post("/add-product", verifyJWT, verifySeller, async (req, res) => {
       const productInfo = req.body;
       productInfo.created_at = new Date();
