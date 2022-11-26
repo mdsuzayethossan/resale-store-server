@@ -106,10 +106,58 @@ async function run() {
     });
     app.get("/my-products", async (req, res) => {
       const email = req.query.email;
-      const query = { email: email };
+      const query = { sellerEmail: email };
       const result = await productsCollection.find(query).toArray();
       res.send(result);
     });
+    app.put("/product/advertise/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const search = await productsCollection.findOne(filter);
+      if (!search.advertised) {
+        const options = { upsert: true };
+        const updatedDoc = {
+          $set: {
+            advertised: true,
+          },
+        };
+        const updatedResult = await productsCollection.updateOne(
+          filter,
+          updatedDoc,
+          options
+        );
+        res.send({ updatedResult, advertised: true });
+      } else {
+        const options = { upsert: true };
+        const updatedDoc = {
+          $set: {
+            advertised: false,
+          },
+        };
+        const updatedResult = await productsCollection.updateOne(
+          filter,
+          updatedDoc,
+          options
+        );
+        res.send({ updatedResult, advertised: false });
+      }
+    });
+
+    // app.get("/addPrice", async (req, res) => {
+    //   const filter = {};
+    //   const options = { upsert: true };
+    //   const updatedDoc = {
+    //     $set: {
+    //       advertise: "false",
+    //     },
+    //   };
+    //   const result = await productsCollection.updateMany(
+    //     filter,
+    //     updatedDoc,
+    //     options
+    //   );
+    //   res.send(result);
+    // });
   } finally {
   }
 }
