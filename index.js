@@ -86,6 +86,18 @@ async function run() {
       const result = await productsCollection.find(query).toArray();
       res.send(result);
     });
+    app.get("/users/seller/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+      res.send({ isAdmin: user?.role === "seller" });
+    });
+    app.get("/users/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+      res.send({ isAdmin: user?.role === "admin" });
+    });
     app.post("/users", async (req, res) => {
       const user = req.body;
       const query = { email: user.email };
@@ -114,7 +126,7 @@ async function run() {
       const result = await usersCollection.find(query).toArray();
       res.send(result);
     });
-    app.post("/add-product", verifyJWT, verifySeller, async (req, res) => {
+    app.post("/add-product", verifyJWT, async (req, res) => {
       const productInfo = req.body;
       productInfo.created_at = new Date();
       const result = await productsCollection.insertOne(productInfo);
