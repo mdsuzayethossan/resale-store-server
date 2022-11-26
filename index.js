@@ -142,7 +142,12 @@ async function run() {
         res.send({ updatedResult, advertised: false });
       }
     });
-
+    app.delete("/product/delete/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await productsCollection.deleteOne(filter);
+      res.send(result);
+    });
     // app.get("/addPrice", async (req, res) => {
     //   const filter = {};
     //   const options = { upsert: true };
