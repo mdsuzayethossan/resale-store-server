@@ -38,6 +38,7 @@ async function run() {
     const categoriesCollection = client
       .db("resaleStore")
       .collection("categories");
+    const orderCollection = client.db("resaleStore").collection("orders");
     const verifySeller = async (req, res, next) => {
       const decodedEmail = req.decoded.email;
       const query = { email: decodedEmail };
@@ -65,7 +66,13 @@ async function run() {
     app.post("/order", async (req, res) => {
       const order = req.body;
       order.created_at = new Date();
-      const result = await usersCollection.insertOne(order);
+      const result = await orderCollection.insertOne(order);
+      res.send(result);
+    });
+    app.get("/orders", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const result = await orderCollection.find(query).toArray();
       res.send(result);
     });
     app.get("/categories", async (req, res) => {
@@ -95,6 +102,12 @@ async function run() {
       const productInfo = req.body;
       productInfo.created_at = new Date();
       const result = await productsCollection.insertOne(productInfo);
+      res.send(result);
+    });
+    app.get("/my-products", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const result = await productsCollection.find(query).toArray();
       res.send(result);
     });
   } finally {
