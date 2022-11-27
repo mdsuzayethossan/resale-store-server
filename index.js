@@ -68,6 +68,7 @@ async function run() {
     app.post("/payment", async (req, res) => {
       const payment = req.body;
       const result = await paymentsCollection.insertOne(payment);
+      //order status update
       const orderId = payment.orderId;
       const filter = { _id: ObjectId(orderId) };
       const options = {
@@ -83,6 +84,22 @@ async function run() {
         filter,
         updateDoc,
         options
+      );
+      //product status update
+      const productId = payment.productId;
+      const productFilter = { _id: ObjectId(productId) };
+      const productOptions = {
+        upsert: true,
+      };
+      const productUpdateDoc = {
+        $set: {
+          status: "sold",
+        },
+      };
+      const productResult = await productsCollection.updateOne(
+        productFilter,
+        productUpdateDoc,
+        productOptions
       );
       res.send(result);
     });
