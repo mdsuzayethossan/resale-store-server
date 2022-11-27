@@ -51,6 +51,17 @@ async function run() {
       }
       next();
     };
+    const verifyBuyer = async (req, res, next) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "buyer") {
+        return res
+          .status(403)
+          .send({ message: "forbidden access", success: false });
+      }
+      next();
+    };
     app.post("/create-payment-intent", async (req, res) => {
       const { price } = req.body;
       const amount = price * 100;
@@ -117,12 +128,6 @@ async function run() {
         res.status(403).send("unauthorized access");
       }
     });
-    app.post("/order", async (req, res) => {
-      const order = req.body;
-      order.created_at = new Date();
-      const result = await orderCollection.insertOne(order);
-      res.send(result);
-    });
     app.post("/report", async (req, res) => {
       const report = req.body;
       report.created_at = new Date();
@@ -140,7 +145,13 @@ async function run() {
       const result = await productsCollection.deleteOne(filter);
       res.send(result);
     });
-    app.get("/orders", async (req, res) => {
+    app.post("/order", async (req, res) => {
+      const order = req.body;
+      order.created_at = new Date();
+      const result = await orderCollection.insertOne(order);
+      res.send(result);
+    });
+    app.get("/orders", verifyJWT, verifyBuyer, async (req, res) => {
       const email = req.query.email;
       const query = { email: email };
       const result = await orderCollection.find(query).toArray();
@@ -183,6 +194,12 @@ async function run() {
       const query = { email };
       const user = await usersCollection.findOne(query);
       res.send({ isBuyer: user?.role === "buyer" });
+    });
+    app.get("/users/verified/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+      res.send({ isVerified: user?.verified === true });
     });
     app.post("/users", async (req, res) => {
       const user = req.body;
@@ -235,38 +252,43 @@ async function run() {
         .toArray();
       res.send(result);
     });
-    app.put("/product/advertise/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: ObjectId(id) };
-      const search = await productsCollection.findOne(filter);
-      if (!search.advertised) {
-        const options = { upsert: true };
-        const updatedDoc = {
-          $set: {
-            advertised: true,
-          },
-        };
-        const updatedResult = await productsCollection.updateOne(
-          filter,
-          updatedDoc,
-          options
-        );
-        res.send({ updatedResult, advertised: true });
-      } else {
-        const options = { upsert: true };
-        const updatedDoc = {
-          $set: {
-            advertised: false,
-          },
-        };
-        const updatedResult = await productsCollection.updateOne(
-          filter,
-          updatedDoc,
-          options
-        );
-        res.send({ updatedResult, advertised: false });
+    app.put(
+      "/product/advertise/:id",
+      verifyJWT,
+      verifySeller,
+      async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: ObjectId(id) };
+        const search = await productsCollection.findOne(filter);
+        if (!search.advertised) {
+          const options = { upsert: true };
+          const updatedDoc = {
+            $set: {
+              advertised: true,
+            },
+          };
+          const updatedResult = await productsCollection.updateOne(
+            filter,
+            updatedDoc,
+            options
+          );
+          res.send({ updatedResult, advertised: true });
+        } else {
+          const options = { upsert: true };
+          const updatedDoc = {
+            $set: {
+              advertised: false,
+            },
+          };
+          const updatedResult = await productsCollection.updateOne(
+            filter,
+            updatedDoc,
+            options
+          );
+          res.send({ updatedResult, advertised: false });
+        }
       }
-    });
+    );
     app.put("/user/verify/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
