@@ -38,6 +38,7 @@ async function run() {
       .db("resaleStore")
       .collection("categories");
     const orderCollection = client.db("resaleStore").collection("orders");
+    const paymentsCollection = client.db("resaleStore").collection("payments");
     const verifySeller = async (req, res, next) => {
       const decodedEmail = req.decoded.email;
       const query = { email: decodedEmail };
@@ -63,6 +64,27 @@ async function run() {
       res.send({
         clientSecret: paymentIntent.client_secret,
       });
+    });
+    app.post("/payment", async (req, res) => {
+      const payment = req.body;
+      const result = await paymentsCollection.insertOne(payment);
+      const orderId = payment.orderId;
+      const filter = { _id: ObjectId(orderId) };
+      const options = {
+        upsert: true,
+      };
+      const updateDoc = {
+        $set: {
+          paid: true,
+          transactionId: payment.transactionId,
+        },
+      };
+      const orderResult = await orderCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      res.send(result);
     });
     app.get("/jwt", async (req, res) => {
       const email = req.query.email;
