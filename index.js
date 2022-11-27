@@ -8,14 +8,13 @@ app.use(express.json());
 const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
-
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.q1ga5lh.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
-
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const verifyJWT = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
@@ -50,6 +49,21 @@ async function run() {
       }
       next();
     };
+    app.post("/create-payment-intent", async (req, res) => {
+      const { price } = req.body;
+      const amount = price * 100;
+
+      // Create a PaymentIntent with the order amount and currency
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
     app.get("/jwt", async (req, res) => {
       const email = req.query.email;
       const query = { email: email };
@@ -73,6 +87,12 @@ async function run() {
       const email = req.query.email;
       const query = { email: email };
       const result = await orderCollection.find(query).toArray();
+      res.send(result);
+    });
+    app.get("/orders/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await orderCollection.findOne(query);
       res.send(result);
     });
     app.get("/categories", async (req, res) => {
@@ -174,6 +194,22 @@ async function run() {
         );
         res.send({ updatedResult, advertised: false });
       }
+    });
+    app.put("/user/verify/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updatedDoc = {
+        $set: {
+          verified: true,
+        },
+      };
+      const updatedResult = await usersCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      );
+      res.send(updatedResult);
     });
     app.delete("/product/delete/:id", async (req, res) => {
       const id = req.params.id;
