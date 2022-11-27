@@ -38,6 +38,7 @@ async function run() {
       .db("resaleStore")
       .collection("categories");
     const orderCollection = client.db("resaleStore").collection("orders");
+    const reportsCollection = client.db("resaleStore").collection("reports");
     const paymentsCollection = client.db("resaleStore").collection("payments");
     const verifySeller = async (req, res, next) => {
       const decodedEmail = req.decoded.email;
@@ -122,6 +123,23 @@ async function run() {
       const result = await orderCollection.insertOne(order);
       res.send(result);
     });
+    app.post("/report", async (req, res) => {
+      const report = req.body;
+      report.created_at = new Date();
+      const result = await reportsCollection.insertOne(report);
+      res.send(result);
+    });
+    app.get("/report", async (req, res) => {
+      const query = {};
+      const result = await reportsCollection.find(query).toArray();
+      res.send(result);
+    });
+    app.delete("/report/product/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await productsCollection.deleteOne(filter);
+      res.send(result);
+    });
     app.get("/orders", async (req, res) => {
       const email = req.query.email;
       const query = { email: email };
@@ -141,21 +159,30 @@ async function run() {
     });
     app.get("/category/:id", async (req, res) => {
       const id = req.params.id;
-      const query = { category: id };
-      const result = await productsCollection.find(query).toArray();
+      const result = await productsCollection
+        .find({
+          $and: [{ category: { $eq: id } }, { status: { $eq: "available" } }],
+        })
+        .toArray();
       res.send(result);
     });
     app.get("/users/seller/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email };
       const user = await usersCollection.findOne(query);
-      res.send({ isAdmin: user?.role === "seller" });
+      res.send({ isSeller: user?.role === "seller" });
     });
     app.get("/users/admin/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email };
       const user = await usersCollection.findOne(query);
       res.send({ isAdmin: user?.role === "admin" });
+    });
+    app.get("/users/buyer/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+      res.send({ isBuyer: user?.role === "buyer" });
     });
     app.post("/users", async (req, res) => {
       const user = req.body;
@@ -198,8 +225,14 @@ async function run() {
       res.send(result);
     });
     app.get("/advertised-products", async (req, res) => {
-      const query = { advertised: true };
-      const result = await productsCollection.find(query).toArray();
+      const result = await productsCollection
+        .find({
+          $and: [
+            { advertised: { $eq: true } },
+            { status: { $eq: "available" } },
+          ],
+        })
+        .toArray();
       res.send(result);
     });
     app.put("/product/advertise/:id", async (req, res) => {
