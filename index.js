@@ -40,6 +40,17 @@ async function run() {
     const orderCollection = client.db("resaleStore").collection("orders");
     const reportsCollection = client.db("resaleStore").collection("reports");
     const paymentsCollection = client.db("resaleStore").collection("payments");
+    const verifyAdmin = async (req, res, next) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "admin") {
+        return res
+          .status(403)
+          .send({ message: "forbidden access", success: false });
+      }
+      next();
+    };
     const verifySeller = async (req, res, next) => {
       const decodedEmail = req.decoded.email;
       const query = { email: decodedEmail };
@@ -219,12 +230,12 @@ async function run() {
       const result = await usersCollection.deleteOne(query);
       res.send(result);
     });
-    app.get("/sellers", async (req, res) => {
+    app.get("/sellers", verifyJWT, verifyAdmin, async (req, res) => {
       const query = { role: "seller" };
       const result = await usersCollection.find(query).toArray();
       res.send(result);
     });
-    app.get("/buyers", async (req, res) => {
+    app.get("/buyers", verifyJWT, verifyAdmin, async (req, res) => {
       const query = { role: "buyer" };
       const result = await usersCollection.find(query).toArray();
       res.send(result);
