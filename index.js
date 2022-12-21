@@ -145,17 +145,28 @@ async function run() {
       const result = await reportsCollection.insertOne(report);
       res.send(result);
     });
-    app.get("/report", async (req, res) => {
+    app.get("/report", verifyJWT, verifyAdmin, async (req, res) => {
       const query = {};
       const result = await reportsCollection.find(query).toArray();
       res.send(result);
     });
-    app.delete("/report/product/:id", async (req, res) => {
+    app.delete("/report/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
-      const filter = { _id: ObjectId(id) };
-      const result = await productsCollection.deleteOne(filter);
+      const query = { _id: ObjectId(id) };
+      const result = await reportsCollection.deleteOne(query);
       res.send(result);
     });
+    app.delete(
+      "/report/product/:id",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: ObjectId(id) };
+        const result = await productsCollection.deleteOne(filter);
+        res.send(result);
+      }
+    );
     app.post("/order", async (req, res) => {
       const order = req.body;
       order.created_at = new Date();
@@ -250,6 +261,12 @@ async function run() {
       const email = req.query.email;
       const query = { sellerEmail: email };
       const result = await productsCollection.find(query).toArray();
+      res.send(result);
+    });
+    app.get("/products/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await productsCollection.findOne(query);
       res.send(result);
     });
     app.get("/advertised-products", async (req, res) => {
