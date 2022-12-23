@@ -263,7 +263,12 @@ async function run() {
       const result = await productsCollection.find(query).toArray();
       res.send(result);
     });
-
+    app.get("/products/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await productsCollection.findOne(query);
+      res.send(result);
+    });
     app.get("/advertised-products", async (req, res) => {
       const result = await productsCollection
         .find({
